@@ -20,7 +20,13 @@ version = 'ssrupdate version 0.1'
 
 
 def usage():
-    print("this a usage")
+    print("-v --version       version")
+    print("-h --help          help")
+    print("--rss=rss          更新订阅参数订阅地址")
+    print("-g                 显示组列表")
+    print("-c 组名/节点ID       更改节点")
+    print("-s 组名             显示指定组节点")
+    print("-t 组民/节点ID           测试速度")
     pass
 
 
@@ -61,7 +67,7 @@ def parser_ssr_addr(jsondata, ssraddr):
         data = base64.b64decode(data)
         if (data.find(b'/?')):
             data = data.split(b'/?')
-            data1 = data[0].split(b':')
+            data1 = data[0].rsplit(b':', 5)
             jsondata['server'] = str(data1[0], encoding='utf-8')
             jsondata['server_port'] = int(data1[1])
             jsondata['protocol'] = str(data1[2], encoding='utf-8')
@@ -72,6 +78,7 @@ def parser_ssr_addr(jsondata, ssraddr):
             data2 = data[1].split(b'&')
 
             tmp = data2[0].split(b'=')
+            
             if(len(tmp[1]) != 0):
                 jsondata['obfs_param'] = str(base64.b64decode(base_adjust(tmp[1])), encoding='utf-8')
 
@@ -82,7 +89,7 @@ def parser_ssr_addr(jsondata, ssraddr):
             tmp = data2[2].split(b'=')
             if(len(tmp) != 0):
                 jsondata['remarks'] = str(base64.b64decode(base_adjust(tmp[1])), encoding='utf-8')
-
+                
             tmp = data2[3].split(b'=')
             if(len(tmp) != 0):
                 jsondata['group'] = str(base64.b64decode(base_adjust(tmp[1])), encoding='utf-8')
@@ -90,32 +97,33 @@ def parser_ssr_addr(jsondata, ssraddr):
         return jsondata
 
 
-def write_ssr_config_file(ssr):
-    ssrdata = load_default_config()
-
-    ssrdata = parser_ssr_addr(ssrdata, ssr)
-
-    group = 'defaults'
-    if 'group' in ssrdata:
-        group = ssrdata['group']
-        del ssrdata['group']
-        pass
-
-    ssrgrp = {}
-    if os.path.exists(confpath+group+'.json'):
-        ssrgrp = json.load(open(confpath+group+'.json', 'r'))
-        pass
-
-    ssrgrp[str(len(ssrgrp)+1)] = ssrdata
-
-    json.dump(ssrgrp, open(confpath+group+'.json', 'w'), ensure_ascii=False, indent=4)
-    return True
-
-
 def update_rss(ssrsite):
-    data = parser_ssr_list(ssrsite)[2:]
-    for x in range(len(data)-1):
-        write_ssr_config_file(data[x])
+    nodelist = parser_ssr_list(ssrsite)[2:]
+    defconfig = load_default_config()
+    ssrconfig = {}
+    for x in range(len(nodelist)-1):
+        ssrdata = parser_ssr_addr(defconfig, nodelist[x])
+        group = 'defaults'
+        if 'group' in ssrdata:
+            group = ssrdata['group']
+            del ssrdata['group']
+            pass
+        if group in ssrconfig:
+            key = len(ssrconfig[group])+1
+            ssrconfig[group][key] = copy.copy(ssrdata)
+            print('id:'+str(key)+' --> '+ssrdata['server'])
+        else:
+            ssrconfig[group] = {}
+            ssrconfig[group][1] = copy.copy(ssrdata)
+            print('id:i --> '+ssrdata['server'])
+            pass
+        pass
+
+    for x in ssrconfig:
+        if os.path.exists(confpath+x+'.json'):
+            os.remove(confpath+x+'.json')
+            pass
+        json.dump(ssrconfig[x], open(confpath+x+'.json', 'w'), ensure_ascii=False, indent=4)
         pass
     print('Completed!')
     pass
@@ -177,7 +185,6 @@ def delete_group(grp):
 
 
 def switch_config(grp, id):
-    print(grp)
     if os.path.exists(confpath+grp+'.json'):
         data = json.load(open(confpath+grp+'.json', 'r'))
         if id in data:
@@ -188,7 +195,7 @@ def switch_config(grp, id):
             if ret[1] == 'active':
                 os.system('systemctl restart shadowsocksr@config')
                 print('restart shadowsocksr@config')
-                pass
+                print('current server: '+new_config['server'])
             print('completed')
             pass
         else:
@@ -210,6 +217,9 @@ def main(argv):
     except IOError:
         print("error")
         pass
+    if len(argv) == 1:
+        usage()
+        return False
     for n, v in opt:
         if n in ['-v', '-version']:
             print(version)
