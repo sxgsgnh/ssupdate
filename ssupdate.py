@@ -20,13 +20,13 @@ version = 'ssrupdate version 0.1'
 
 
 def usage():
-    print("-v --version       version")
-    print("-h --help          help")
-    print("--rss=rss          更新订阅参数订阅地址")
-    print("-g                 显示组列表")
-    print("-c 组名/节点ID       更改节点")
-    print("-s 组名             显示指定组节点")
-    print("-t 组民/节点ID           测试速度")
+    print("-v --version\t\t版本")
+    print("-h --help\t\t帮助")
+    print("--rss=订阅地址\t\t更新订阅参数订阅地址")
+    print("-g\t\t\t显示组列表")
+    print("-c 组名/节点ID\t\t更改节点")
+    print("-s 组名\t\t\t显示指定组节点")
+    print("-t 组民/节点ID\t\t测试速度")
     pass
 
 
